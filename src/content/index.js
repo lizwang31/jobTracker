@@ -1686,12 +1686,15 @@ function extractJobInfo() {
 }
 
 function extractGenericJobInfo() {
-  // Job title — prefer h1, fallback to page title
+  // Job title — h1 unless it looks like a generic section header, then try h2 / page title
+  const GENERIC_HEADINGS = ["careers", "jobs", "home", "search", "apply", "opportunities", "job search", "find a job"];
   const h1 = document.querySelector("h1")?.innerText?.trim() || "";
+  const h1IsGeneric = !h1 || (h1.length < 40 && GENERIC_HEADINGS.some(g => h1.toLowerCase().includes(g)));
+  const h2 = h1IsGeneric ? (document.querySelector("h2")?.innerText?.trim() || "") : "";
   const titleFromPage = document.title.split(/[|\-–·]/)[0].trim();
-  const title = h1 || titleFromPage || "Unknown Position";
+  const title = (!h1IsGeneric && h1) || h2 || titleFromPage || "Unknown Position";
 
-  // Company — og:site_name > known ATS selectors > domain name
+  // Company — og:site_name > ATS selectors > subdomain > domain fallback
   const ogSite = document.querySelector('meta[property="og:site_name"]')?.content?.trim() || "";
   const atsCompany = firstText([
     "[data-testid='company-name']",
@@ -1700,11 +1703,18 @@ function extractGenericJobInfo() {
     ".company",
     "[itemprop='hiringOrganization'] [itemprop='name']",
   ]);
+  // For subdomains like bmo.wd3.myworkdayjobs.com → use "bmo"
+  const GENERIC_SUBDOMAINS = new Set(["jobs", "careers", "www", "apply", "job", "career", "boards", "hire"]);
   const domainCompany = (() => {
     const host = window.location.hostname.replace(/^www\./, "");
     const parts = host.split(".");
+    // Try first subdomain if it looks like a company name
+    if (parts.length > 2 && !GENERIC_SUBDOMAINS.has(parts[0].toLowerCase())) {
+      return parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+    }
+    // Fallback: second-to-last part (e.g. "celestica" from careers.celestica.com)
     const name = parts.length >= 2 ? parts[parts.length - 2] : parts[0];
-    return name.charAt(0).toUpperCase() + name.slice(1);
+    return GENERIC_SUBDOMAINS.has(name.toLowerCase()) ? "" : name.charAt(0).toUpperCase() + name.slice(1);
   })();
   const company = ogSite || atsCompany || domainCompany || "Unknown Company";
 
