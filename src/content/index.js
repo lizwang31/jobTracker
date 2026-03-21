@@ -263,7 +263,7 @@ function togglePreviewPrompt() {
     return;
   }
 
-  if (EXTERNAL_SITES.has(SITE)) {
+  if (SITE !== "linkedin" && SITE !== "indeed") {
     showGenericSavePrompt();
     return;
   }
