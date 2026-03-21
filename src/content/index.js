@@ -198,11 +198,11 @@ function togglePreviewPrompt() {
   `;
 
   prompt.innerHTML = `
-    <div style="font-size:13px;color:#fda4af;font-weight:700;letter-spacing:0.04em;text-transform:uppercase">Preview Match</div>
+    <div style="font-size:13px;color:#6c6ef7;font-weight:700;letter-spacing:0.04em;text-transform:uppercase">Preview Match</div>
     <div style="font-size:14px;color:#e5e7eb;line-height:1.6;margin-top:8px">Run a resume-to-job match analysis for this role now?</div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
       <button id="notionify-preview-cancel" type="button" style="border:1px solid rgba(255,255,255,0.1);background:transparent;color:#cbd5e1;border-radius:999px;padding:8px 12px;font:600 12px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer">Not now</button>
-      <button id="notionify-preview-confirm" type="button" style="border:0;background:linear-gradient(180deg, #fda4af 0%, #fb7185 100%);color:#fff;border-radius:999px;padding:8px 12px;font:700 12px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer">Run Analysis</button>
+      <button id="notionify-preview-confirm" type="button" style="border:0;background:linear-gradient(135deg, #6c6ef7 0%, #5254cc 100%);color:#fff;border-radius:999px;padding:8px 12px;font:700 12px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer">Run Analysis</button>
     </div>
   `;
 
