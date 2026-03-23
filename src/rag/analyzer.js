@@ -588,18 +588,21 @@ async function callOpenAI(system, user, apiKey, options = {}) {
     model = "gpt-5.1",
     reasoningEffort = "medium",
   } = options;
+  const isReasoningModel = typeof model === "string" && model.startsWith("gpt-5");
   const body = {
     model,
-    temperature: 0.4,
-    max_tokens: 2000,
     messages: [
       { role: "system", content: system },
       { role: "user", content: user },
     ],
   };
 
-  if (typeof model === "string" && model.startsWith("gpt-5")) {
+  if (isReasoningModel) {
+    body.max_completion_tokens = 2000;
     body.reasoning_effort = reasoningEffort || "medium";
+  } else {
+    body.temperature = 0.4;
+    body.max_tokens = 2000;
   }
 
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
