@@ -2090,11 +2090,11 @@ function tryRecordCurrentJob(reason = "unknown") {
       ...(pendingApplication?.job || {}),
       ...(onConfirmationPage ? {} : liveJob),
       title:
-        !shouldPreferPendingIdentity && !onConfirmationPage && liveJob.title && liveJob.title !== "Unknown Position"
+        !shouldPreferPendingIdentity && !onConfirmationPage && isKnownTitle(liveJob.title)
           ? liveJob.title
           : pendingApplication?.job?.title || "Unknown Position",
       company:
-        !shouldPreferPendingIdentity && !onConfirmationPage && liveJob.company && liveJob.company !== "Unknown Company"
+        !shouldPreferPendingIdentity && !onConfirmationPage && isKnownCompany(liveJob.company)
           ? liveJob.company
           : pendingApplication?.job?.company || "Unknown Company",
       location:
