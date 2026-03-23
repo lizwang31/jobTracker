@@ -2,7 +2,7 @@
 // Runs on LinkedIn Jobs and Indeed pages
 // Detects apply actions and sends job info to background.js
 
-console.log("[Notionify] content script file loaded:", window.location.href);
+console.log("[JobFlow] content script file loaded:", window.location.href);
 
 const SITE = (() => {
   const host = window.location.hostname;
@@ -31,21 +31,21 @@ let previewPromptOpen = false;
 let cachedPendingApplicationContext = null;
 let cachedLastJobSnapshot = null;
 let cachedPreviewAnalysisCache = [];
-const PENDING_QUEUE_KEY = "notionify_pending_applications";
-const PENDING_APPLICATION_KEY = "notionify_pending_application_context";
-const LAST_JOB_SNAPSHOT_KEY = "notionify_last_job_snapshot";
-const PREVIEW_ANALYSIS_CACHE_KEY = "notionify_preview_analysis_cache";
-const WIDGET_POSITION_KEY = "notionify_widget_position";
+const PENDING_QUEUE_KEY = "jobflow_pending_applications";
+const PENDING_APPLICATION_KEY = "jobflow_pending_application_context";
+const LAST_JOB_SNAPSHOT_KEY = "jobflow_last_job_snapshot";
+const PREVIEW_ANALYSIS_CACHE_KEY = "jobflow_preview_analysis_cache";
+const WIDGET_POSITION_KEY = "jobflow_widget_position";
 const MAX_JD_TEXT_CHARS = 12000;
 
 // ---------- Debug helpers ----------
 
 function debug(...args) {
-  console.log("[Notionify]", ...args);
+  console.log("[JobFlow]", ...args);
 }
 
 function debugError(...args) {
-  console.error("[Notionify]", ...args);
+  console.error("[JobFlow]", ...args);
 }
 
 function isIgnorableRuntimeErrorMessage(message = "") {
@@ -59,7 +59,7 @@ function isIgnorableRuntimeErrorMessage(message = "") {
 
 function markInjected() {
   try {
-    document.documentElement.setAttribute("data-notionify-injected", "yes");
+    document.documentElement.setAttribute("data-jobflow-injected", "yes");
   } catch (e) {
     debugError("Failed to mark injected:", e);
   }
@@ -73,11 +73,11 @@ function showBadge() {
       return;
     }
 
-    const old = document.getElementById("notionify-widget");
+    const old = document.getElementById("jobflow-widget");
     if (old) old.remove();
 
     const widget = document.createElement("div");
-    widget.id = "notionify-widget";
+    widget.id = "jobflow-widget";
     widget.style.cssText = `
       position: fixed;
       top: 50%;
@@ -88,7 +88,7 @@ function showBadge() {
     applyWidgetPosition(widget, loadWidgetPosition());
 
     const actionBtn = document.createElement("button");
-    actionBtn.id = "notionify-analyze-btn";
+    actionBtn.id = "jobflow-analyze-btn";
     actionBtn.type = "button";
     actionBtn.innerHTML = `
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -141,11 +141,11 @@ function showBadge() {
 }
 
 function ensurePreviewPanel() {
-  let panel = document.getElementById("notionify-preview-panel");
+  let panel = document.getElementById("jobflow-preview-panel");
   if (panel) return panel;
 
   panel = document.createElement("div");
-  panel.id = "notionify-preview-panel";
+  panel.id = "jobflow-preview-panel";
   panel.style.cssText = `
     position: fixed;
     top: 80px;
@@ -171,11 +171,11 @@ function ensurePreviewPanel() {
 }
 
 function closePreviewPanel() {
-  document.getElementById("notionify-preview-panel")?.remove();
+  document.getElementById("jobflow-preview-panel")?.remove();
 }
 
 function closePreviewPrompt() {
-  document.getElementById("notionify-preview-prompt")?.remove();
+  document.getElementById("jobflow-preview-prompt")?.remove();
   previewPromptOpen = false;
 }
 
@@ -185,7 +185,7 @@ function showGenericSavePrompt() {
   const hasJd = (job.jdText || "").length > 200;
 
   const prompt = document.createElement("div");
-  prompt.id = "notionify-preview-prompt";
+  prompt.id = "jobflow-preview-prompt";
   prompt.style.cssText = `
     position: fixed;
     top: 80px;
@@ -220,7 +220,7 @@ function showGenericSavePrompt() {
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center">
-      <button id="notionify-preview-cancel" type="button" style="border:none;background:transparent;color:#64748b;font:500 12px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;padding:7px 4px">Cancel</button>
+      <button id="jobflow-preview-cancel" type="button" style="border:none;background:transparent;color:#64748b;font:500 12px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;padding:7px 4px">Cancel</button>
       ${hasJd ? `<button id="nt-save-analyze" type="button" style="border:1px solid rgba(108,110,247,0.35);background:rgba(108,110,247,0.1);color:#a5b4fc;border-radius:8px;padding:7px 12px;font:600 12px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer">Analyze</button>` : ""}
       <button id="nt-save-confirm" type="button" style="border:0;background:linear-gradient(135deg,#6c6ef7 0%,#5254cc 100%);color:#fff;border-radius:8px;padding:7px 14px;font:700 12px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer">Save Applied</button>
     </div>
@@ -236,7 +236,7 @@ function showGenericSavePrompt() {
     company: prompt.querySelector("#nt-save-company")?.value?.trim() || job.company,
   });
 
-  prompt.querySelector("#notionify-preview-cancel")?.addEventListener("click", closePreviewPrompt);
+  prompt.querySelector("#jobflow-preview-cancel")?.addEventListener("click", closePreviewPrompt);
 
   prompt.querySelector("#nt-save-confirm")?.addEventListener("click", () => {
     const editedJob = getEditedJob();
@@ -256,7 +256,7 @@ function showGenericSavePrompt() {
   setTimeout(() => {
     const handleOutsideClick = (event) => {
       if (!previewPromptOpen) { document.removeEventListener("click", handleOutsideClick, true); return; }
-      const actionBtn = document.getElementById("notionify-analyze-btn");
+      const actionBtn = document.getElementById("jobflow-analyze-btn");
       if (prompt.contains(event.target) || actionBtn?.contains(event.target)) return;
       closePreviewPrompt();
       document.removeEventListener("click", handleOutsideClick, true);
@@ -278,12 +278,12 @@ function togglePreviewPrompt() {
     return;
   }
 
-  const actionBtn = document.getElementById("notionify-analyze-btn");
+  const actionBtn = document.getElementById("jobflow-analyze-btn");
   if (!actionBtn) return;
 
   closePreviewPrompt();
   const prompt = document.createElement("div");
-  prompt.id = "notionify-preview-prompt";
+  prompt.id = "jobflow-preview-prompt";
   prompt.style.cssText = `
     position: fixed;
     top: 80px;
@@ -303,8 +303,8 @@ function togglePreviewPrompt() {
     <div style="font-size:13px;color:#6c6ef7;font-weight:700;letter-spacing:0.04em;text-transform:uppercase">Preview Match</div>
     <div style="font-size:14px;color:#e5e7eb;line-height:1.6;margin-top:8px">Run a resume-to-job match analysis for this role now?</div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
-      <button id="notionify-preview-cancel" type="button" style="border:1px solid rgba(255,255,255,0.1);background:transparent;color:#cbd5e1;border-radius:999px;padding:8px 12px;font:600 12px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer">Not now</button>
-      <button id="notionify-preview-confirm" type="button" style="border:0;background:linear-gradient(135deg, #6c6ef7 0%, #5254cc 100%);color:#fff;border-radius:999px;padding:8px 12px;font:700 12px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer">Run Analysis</button>
+      <button id="jobflow-preview-cancel" type="button" style="border:1px solid rgba(255,255,255,0.1);background:transparent;color:#cbd5e1;border-radius:999px;padding:8px 12px;font:600 12px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer">Not now</button>
+      <button id="jobflow-preview-confirm" type="button" style="border:0;background:linear-gradient(135deg, #6c6ef7 0%, #5254cc 100%);color:#fff;border-radius:999px;padding:8px 12px;font:700 12px/1 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer">Run Analysis</button>
     </div>
   `;
 
@@ -312,8 +312,8 @@ function togglePreviewPrompt() {
   positionFloatingSurface(prompt, 280, 180);
   previewPromptOpen = true;
 
-  prompt.querySelector("#notionify-preview-cancel")?.addEventListener("click", closePreviewPrompt);
-  prompt.querySelector("#notionify-preview-confirm")?.addEventListener("click", () => {
+  prompt.querySelector("#jobflow-preview-cancel")?.addEventListener("click", closePreviewPrompt);
+  prompt.querySelector("#jobflow-preview-confirm")?.addEventListener("click", () => {
     closePreviewPrompt();
     runPreviewAnalysis();
   });
@@ -438,7 +438,7 @@ function clampNumber(value, min, max) {
 }
 
 function getWidgetAnchorRect() {
-  return document.getElementById("notionify-widget")?.getBoundingClientRect() || null;
+  return document.getElementById("jobflow-widget")?.getBoundingClientRect() || null;
 }
 
 function positionFloatingSurface(el, preferredWidth = 320, preferredHeight = 240) {
@@ -460,24 +460,24 @@ function positionFloatingSurface(el, preferredWidth = 320, preferredHeight = 240
 }
 
 function repositionFloatingSurfaces() {
-  positionFloatingSurface(document.getElementById("notionify-preview-prompt"), 280, 180);
-  positionFloatingSurface(document.getElementById("notionify-preview-panel"), 360, 520);
+  positionFloatingSurface(document.getElementById("jobflow-preview-prompt"), 280, 180);
+  positionFloatingSurface(document.getElementById("jobflow-preview-panel"), 360, 520);
 }
 
 function ensureContentStyles() {
-  if (document.getElementById("notionify-content-styles")) return;
+  if (document.getElementById("jobflow-content-styles")) return;
   const style = document.createElement("style");
-  style.id = "notionify-content-styles";
+  style.id = "jobflow-content-styles";
   style.textContent = `
-    @keyframes notionify-spin { to { transform: rotate(360deg); } }
-    @keyframes notionify-shimmer {
+    @keyframes jobflow-spin { to { transform: rotate(360deg); } }
+    @keyframes jobflow-shimmer {
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
-    .notionify-skel {
+    .jobflow-skel {
       background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 100%);
       background-size: 200% 100%;
-      animation: notionify-shimmer 1.5s ease infinite;
+      animation: jobflow-shimmer 1.5s ease infinite;
       border-radius: 8px;
     }
   `;
@@ -501,25 +501,25 @@ function setPreviewPanelLoading(title) {
         <div style="font-size:11px;color:#6c6ef7;font-weight:700;letter-spacing:0.06em;text-transform:uppercase">Preview Analysis</div>
         <div style="font-size:17px;font-weight:700;color:#f8fafc;margin-top:4px">${escapeHtml(title || "Current Job")}</div>
       </div>
-      <button id="notionify-preview-close" type="button" style="border:0;background:transparent;color:#64748b;font-size:20px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px;flex-shrink:0">×</button>
+      <button id="jobflow-preview-close" type="button" style="border:0;background:transparent;color:#64748b;font-size:20px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px;flex-shrink:0">×</button>
     </div>
     <div style="padding:14px 16px">
       <div style="display:flex;align-items:center;gap:10px;color:#64748b;font-size:13px;margin-bottom:18px">
-        <div style="width:16px;height:16px;border:2px solid rgba(108,110,247,0.25);border-top-color:#6c6ef7;border-radius:50%;animation:notionify-spin 0.8s linear infinite;flex-shrink:0"></div>
+        <div style="width:16px;height:16px;border:2px solid rgba(108,110,247,0.25);border-top-color:#6c6ef7;border-radius:50%;animation:jobflow-spin 0.8s linear infinite;flex-shrink:0"></div>
         Analyzing your resume against this job...
       </div>
-      <div class="notionify-skel" style="height:52px;margin-bottom:10px"></div>
-      <div class="notionify-skel" style="height:20px;width:75%;margin-bottom:8px"></div>
-      <div class="notionify-skel" style="height:20px;width:88%;margin-bottom:8px"></div>
-      <div class="notionify-skel" style="height:20px;width:62%;margin-bottom:18px"></div>
-      <div class="notionify-skel" style="height:34px;margin-bottom:7px"></div>
-      <div class="notionify-skel" style="height:34px;margin-bottom:7px"></div>
+      <div class="jobflow-skel" style="height:52px;margin-bottom:10px"></div>
+      <div class="jobflow-skel" style="height:20px;width:75%;margin-bottom:8px"></div>
+      <div class="jobflow-skel" style="height:20px;width:88%;margin-bottom:8px"></div>
+      <div class="jobflow-skel" style="height:20px;width:62%;margin-bottom:18px"></div>
+      <div class="jobflow-skel" style="height:34px;margin-bottom:7px"></div>
+      <div class="jobflow-skel" style="height:34px;margin-bottom:7px"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px">
-        ${[1,2,3,4,5,6].map(() => `<div class="notionify-skel" style="height:30px"></div>`).join("")}
+        ${[1,2,3,4,5,6].map(() => `<div class="jobflow-skel" style="height:30px"></div>`).join("")}
       </div>
     </div>
   `;
-  panel.querySelector("#notionify-preview-close")?.addEventListener("click", closePreviewPanel);
+  panel.querySelector("#jobflow-preview-close")?.addEventListener("click", closePreviewPanel);
 }
 
 function renderPreviewPanel(job, analysis) {
@@ -538,7 +538,7 @@ function renderPreviewPanel(job, analysis) {
         <div style="font-size:17px;font-weight:700;color:#f8fafc;margin-top:4px">${escapeHtml(job.title || "Current Job")}</div>
         <div style="font-size:12px;color:#475569;margin-top:2px">${escapeHtml(job.company || "")}</div>
       </div>
-      <button id="notionify-preview-close" type="button" style="border:0;background:transparent;color:#64748b;font-size:20px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px;flex-shrink:0">×</button>
+      <button id="jobflow-preview-close" type="button" style="border:0;background:transparent;color:#64748b;font-size:20px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px;flex-shrink:0">×</button>
     </div>
     <div style="padding:14px 16px">
       <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
@@ -556,7 +556,7 @@ function renderPreviewPanel(job, analysis) {
       ${renderKeywordSection(matched, missing)}
     </div>
   `;
-  panel.querySelector("#notionify-preview-close")?.addEventListener("click", closePreviewPanel);
+  panel.querySelector("#jobflow-preview-close")?.addEventListener("click", closePreviewPanel);
 }
 
 function renderPreviewError(title, message) {
@@ -567,11 +567,11 @@ function renderPreviewError(title, message) {
         <div style="font-size:11px;color:#6c6ef7;font-weight:700;letter-spacing:0.06em;text-transform:uppercase">Preview Analysis</div>
         <div style="font-size:17px;font-weight:700;color:#f8fafc;margin-top:4px">${escapeHtml(title || "Current Job")}</div>
       </div>
-      <button id="notionify-preview-close" type="button" style="border:0;background:transparent;color:#64748b;font-size:20px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px;flex-shrink:0">×</button>
+      <button id="jobflow-preview-close" type="button" style="border:0;background:transparent;color:#64748b;font-size:20px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:4px;flex-shrink:0">×</button>
     </div>
     <div style="padding:14px 16px;font-size:13px;color:#f87171;line-height:1.6">${escapeHtml(message)}</div>
   `;
-  panel.querySelector("#notionify-preview-close")?.addEventListener("click", closePreviewPanel);
+  panel.querySelector("#jobflow-preview-close")?.addEventListener("click", closePreviewPanel);
 }
 
 function renderPreviewList(title, items, bg, color, borderColor) {
@@ -1194,7 +1194,7 @@ async function runPreviewAnalysis() {
   }
 
   previewAnalysisBusy = true;
-  const actionBtn = document.getElementById("notionify-analyze-btn");
+  const actionBtn = document.getElementById("jobflow-analyze-btn");
   if (actionBtn) {
     actionBtn.disabled = true;
     actionBtn.innerHTML = `<span>Analyzing...</span>`;

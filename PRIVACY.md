@@ -41,4 +41,4 @@ Your API keys are stored in `chrome.storage.sync` and only ever sent to the resp
 
 ## Contact
 
-Open an issue at [github.com/YOUR_USERNAME/notionify-jobs/issues](https://github.com/YOUR_USERNAME/notionify-jobs/issues)
+Open an issue at [github.com/YOUR_USERNAME/jobflow/issues](https://github.com/YOUR_USERNAME/jobflow/issues)

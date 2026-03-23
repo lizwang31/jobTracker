@@ -36,7 +36,7 @@ A Chrome extension that automatically tracks your job applications into Notion â
    ```
 2. Open Chrome and go to `chrome://extensions`
 3. Turn on **Developer mode** (toggle in the top-right corner)
-4. Click **Load unpacked** and select the `notionify-jobs` folder
+4. Click **Load unpacked** and select the `jobflow` folder
 
 The extension icon will appear in your toolbar.
 

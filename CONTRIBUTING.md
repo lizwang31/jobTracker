@@ -5,8 +5,8 @@ Thanks for your interest! Here's how to get started.
 ## Development setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/notionify-jobs.git
-cd notionify-jobs
+git clone https://github.com/YOUR_USERNAME/jobflow.git
+cd jobflow
 
 # Load in Chrome
 # chrome://extensions → Developer mode → Load unpacked → select this folder
