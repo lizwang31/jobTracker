@@ -612,6 +612,14 @@ function chunkTextForNotion(text, maxLength = 1800) {
   return chunks;
 }
 
+function toLocalDateString(isoString) {
+  const d = isoString ? new Date(isoString) : new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function buildNotionProperties(job) {
   const p = {
     "Job Title":    { title:     [{ text: { content: job.title    ?? "Unknown" } }] },
@@ -619,7 +627,7 @@ function buildNotionProperties(job) {
     "Location":     { rich_text: [{ text: { content: job.location ?? "" } }] },
     "Platform":     { select:    { name: job.platform ?? "Other" } },
     "Status":       { select:    { name: job.status   ?? "Applied" } },
-    "Date Applied": { date:      { start: (job.appliedAt ?? new Date().toISOString()).split("T")[0] } },
+    "Date Applied": { date:      { start: toLocalDateString(job.appliedAt) } },
     "URL":          { url: job.url || null },
   };
   if (job.salary)     p["Salary"]      = { rich_text: [{ text: { content: job.salary } }] };
