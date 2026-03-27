@@ -1302,9 +1302,19 @@ async function loadAnalysisSettings() {
 
 function getPreviewAnalysisJob() {
   const liveJob = sanitizeJobPayload(extractJobInfo());
+  const currentJobId = getCurrentJobId();
   const lastSnapshot = loadLastJobSnapshot();
-  const merged = mergeJobContext(liveJob, lastSnapshot?.job || {});
-  return merged;
+
+  // Only use snapshot as fallback if it belongs to the current job.
+  // Using a snapshot from a different job would give the AI wrong context.
+  const snapshotBelongsHere =
+    lastSnapshot &&
+    (
+      lastSnapshot.jobId === currentJobId ||
+      (lastSnapshot.job?.url && liveJob.url && lastSnapshot.job.url === liveJob.url)
+    );
+
+  return mergeJobContext(liveJob, snapshotBelongsHere ? lastSnapshot.job : {});
 }
 
 async function runPreviewAnalysis() {
